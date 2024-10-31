@@ -17,20 +17,21 @@
 
   
 - [Environment Variables](#environment-variables)
+- [Tech Stack](#tech-stack)
 - [Features](#features)
-- [Installation](#installation)
+
 - [Lessons Learned](#lessons-learned)
 - [License](#license)
 
 
 - [Related Projects](#related-projects)
-- [Roadmap](#roadmap)
-- [Run Locally](#run-locally)
+
+
 - [Screenshots](#screenshots)
 - [Support](#support)
-- [Tech Stack](#tech-stack)
-- [Running Tests](#running-tests)
-- [Usage/Examples](#usageexamples)
+
+
+
 
 
 
@@ -158,9 +159,7 @@ aws.s3.secrete=your_aws_secret_key
 • Efficiently managing cloud storage for media files.
 • Implementing role-based access with Spring Security.
 
-# Optimizations
-• Optimized database queries for large datasets.
-• Enhanced caching for frequently accessed data.
+
 
 # License
 This project is licensed under the MIT License. See the LICENSE file for details.
