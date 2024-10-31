@@ -4,7 +4,7 @@
 
 ## Table of Contents
 - [Acknowledgements](#acknowledgements)
-- [API Reference](#api-reference)
+
 - [Project Structure](#Project-Structure)
 - [Dependencies](#Dependencies)
 - [Getting Started](#Getting-Started)
@@ -39,8 +39,7 @@
 Special thanks to the Spring Boot, MySQL, and AWS developer communities for their extensive documentation and resources, which greatly assisted in building this project.
 
 
-## API Reference
-The API provides endpoints for managing users, products, orders, addresses, and categories. For detailed API usage, see the [API Documentation](docs/api-reference.md).
+
 
 ## Project-Structure
 The project is organized into the following main packages:
