@@ -117,4 +117,19 @@ public class EntityDtoMapper {
         return userDto;
 
     }
+
+    // Add in EntityDtoMapper.java
+    public OrderDto mapOrderToDto(Orders order) {
+        OrderDto orderDto = new OrderDto();
+        orderDto.setId(order.getId());
+        orderDto.setTotalPrice(order.getTotalPrice());
+        orderDto.setCreatedAt(order.getCreatedAt());
+        if (order.getOrderItemList() != null) {
+            orderDto.setOrderItemList(order.getOrderItemList().stream()
+                    .map(this::mapOrderItemToDtoPlusProductAndUser)
+                    .collect(Collectors.toList()));
+        }
+        return orderDto;
+    }
+
 }

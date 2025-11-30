@@ -30,7 +30,7 @@ public class OrderItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
-    private Order order;
+    private Orders order;
 
     @Column(name = "created_at")
     private final LocalDateTime createdAt = LocalDateTime.now();
