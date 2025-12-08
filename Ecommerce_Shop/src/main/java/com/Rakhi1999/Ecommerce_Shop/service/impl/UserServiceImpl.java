@@ -36,11 +36,48 @@ public class UserServiceImpl implements UserService {
     private final EntityDtoMapper entityDtoMapper;
 
 
+//    @Override
+//    public Response registerUser(UserDto registrationRequest) {
+//        UserRole role = UserRole.USER;
+//
+//        if (registrationRequest.getRole() != null && registrationRequest.getRole().equalsIgnoreCase("admin")) {
+//            role = UserRole.ADMIN;
+//        }
+//
+//        User user = User.builder()
+//                .name(registrationRequest.getName())
+//                .email(registrationRequest.getEmail())
+//                .password(passwordEncoder.encode(registrationRequest.getPassword()))
+//                .phoneNumber(registrationRequest.getPhoneNumber())
+//                .role(role)
+//                .build();
+//
+//        User savedUser = userRepo.save(user);
+//        System.out.println(savedUser);
+//
+//        UserDto userDto = entityDtoMapper.mapUserToDtoBasic(savedUser);
+//        return Response.builder()
+//                .status(200)
+//                .message("User Successfully Added")
+//                .user(userDto)
+//                .build();
+//    }
+
     @Override
     public Response registerUser(UserDto registrationRequest) {
+
+        // Check if email already exists
+        if (userRepo.existsByEmail(registrationRequest.getEmail())) {
+            return Response.builder()
+                    .status(400)
+                    .message("User already registered with this email!")
+                    .build();
+        }
+
         UserRole role = UserRole.USER;
 
-        if (registrationRequest.getRole() != null && registrationRequest.getRole().equalsIgnoreCase("admin")) {
+        if (registrationRequest.getRole() != null &&
+                registrationRequest.getRole().equalsIgnoreCase("admin")) {
             role = UserRole.ADMIN;
         }
 
@@ -53,12 +90,11 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         User savedUser = userRepo.save(user);
-        System.out.println(savedUser);
 
         UserDto userDto = entityDtoMapper.mapUserToDtoBasic(savedUser);
         return Response.builder()
                 .status(200)
-                .message("User Successfully Added")
+                .message("User Successfully Registered")
                 .user(userDto)
                 .build();
     }

@@ -19,10 +19,21 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<Response> registerUser(@RequestBody UserDto registrationRequest){
-        System.out.println(registrationRequest);
-        return ResponseEntity.ok(userService.registerUser(registrationRequest));
+    public ResponseEntity<Response> registerUser(@RequestBody UserDto registrationRequest) {
+        Response response = userService.registerUser(registrationRequest);
+
+        // Check if backend returned error in JSON
+        if (response.getStatus() == 400) {
+            return ResponseEntity
+                    .status(400)
+                    .body(response);
+        }
+
+        return ResponseEntity
+                .status(200)
+                .body(response);
     }
+
     @PostMapping("/login")
     public ResponseEntity<Response> loginUser(@RequestBody LoginRequest loginRequest){
         return ResponseEntity.ok(userService.loginUser(loginRequest));
