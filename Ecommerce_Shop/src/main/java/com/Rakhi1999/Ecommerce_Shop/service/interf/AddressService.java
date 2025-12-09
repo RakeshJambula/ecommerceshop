@@ -4,5 +4,6 @@ import com.Rakhi1999.Ecommerce_Shop.dto.AddressDto;
 import com.Rakhi1999.Ecommerce_Shop.dto.Response;
 
 public interface AddressService {
-    Response saveAndUpdateAddress(AddressDto addressDto);
+    Response saveAndUpdateAddress(Long userId, AddressDto addressDto);
 }
+

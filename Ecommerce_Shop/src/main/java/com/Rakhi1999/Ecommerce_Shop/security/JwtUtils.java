@@ -2,10 +2,12 @@ package com.Rakhi1999.Ecommerce_Shop.security;
 
 
 import com.Rakhi1999.Ecommerce_Shop.entity.User;
+import com.Rakhi1999.Ecommerce_Shop.repository.UserRepo;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,9 @@ public class JwtUtils {
 
     @Value("${secreteJwtString}")
     private String secreteJwtString; //Make sure the value in the application properties is 32characters or long
+
+    @Autowired
+    private UserRepo userRepo;
 
     @PostConstruct
     private void init(){
@@ -63,4 +68,17 @@ public class JwtUtils {
     private boolean isTokenExpired(String token){
         return extractClaims(token, Claims::getExpiration).before(new Date());
     }
+
+    public Long extractUserId(String token) {
+
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
+        String email = getUsernameFromToken(token);
+        return userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"))
+                .getId();
+    }
+
 }
