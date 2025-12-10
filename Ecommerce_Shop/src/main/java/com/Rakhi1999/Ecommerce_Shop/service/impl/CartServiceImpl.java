@@ -25,7 +25,7 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartItem addToCart(Long productId) {
-        User user = userService.getLoginUser();
+        User user = userService.getCurrentUser();
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product Not Found"));
 
@@ -44,27 +44,29 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public List<CartItem> getCartItems() {
-        User user = userService.getLoginUser();
+        User user = userService.getCurrentUser();
         return cartItemRepository.findByUser(user);
     }
 
     @Override
     public CartItem incrementItem(Long productId) {
-        User user = userService.getLoginUser();
+        User user = userService.getCurrentUser();
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product Not Found"));
 
         CartItem cartItem = cartItemRepository.findByUserAndProduct(user, product)
                 .orElseThrow(() -> new NotFoundException("Cart item not found"));
+
         cartItem.setQuantity(cartItem.getQuantity() + 1);
         return cartItemRepository.save(cartItem);
     }
 
     @Override
     public CartItem decrementItem(Long productId) {
-        User user = userService.getLoginUser();
+        User user = userService.getCurrentUser();
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product Not Found"));
+
         CartItem cartItem = cartItemRepository.findByUserAndProduct(user, product)
                 .orElseThrow(() -> new NotFoundException("Cart item not found"));
 
@@ -84,7 +86,7 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public void clearCart() {
-        User user = userService.getLoginUser();
+        User user = userService.getCurrentUser();
         cartItemRepository.deleteByUser(user);
     }
 }

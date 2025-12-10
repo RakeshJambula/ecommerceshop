@@ -21,8 +21,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
 
 @Service
 @Slf4j
@@ -35,33 +33,6 @@ public class UserServiceImpl implements UserService {
     private final JwtUtils jwtUtils;
     private final EntityDtoMapper entityDtoMapper;
 
-
-//    @Override
-//    public Response registerUser(UserDto registrationRequest) {
-//        UserRole role = UserRole.USER;
-//
-//        if (registrationRequest.getRole() != null && registrationRequest.getRole().equalsIgnoreCase("admin")) {
-//            role = UserRole.ADMIN;
-//        }
-//
-//        User user = User.builder()
-//                .name(registrationRequest.getName())
-//                .email(registrationRequest.getEmail())
-//                .password(passwordEncoder.encode(registrationRequest.getPassword()))
-//                .phoneNumber(registrationRequest.getPhoneNumber())
-//                .role(role)
-//                .build();
-//
-//        User savedUser = userRepo.save(user);
-//        System.out.println(savedUser);
-//
-//        UserDto userDto = entityDtoMapper.mapUserToDtoBasic(savedUser);
-//        return Response.builder()
-//                .status(200)
-//                .message("User Successfully Added")
-//                .user(userDto)
-//                .build();
-//    }
 
     @Override
     public Response registerUser(UserDto registrationRequest) {
@@ -134,17 +105,18 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getLoginUser() {
+    public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String  email = authentication.getName();
-        log.info("User Email is: " + email);
+        String email = authentication.getName();
+        log.info("Logged-in user email: " + email);
+
         return userRepo.findByEmail(email)
-                .orElseThrow(()-> new UsernameNotFoundException("User Not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("User Not found"));
     }
 
     @Override
     public Response getUserInfoAndOrderHistory() {
-        User user = getLoginUser();
+        User user = getCurrentUser();
         UserDto userDto = entityDtoMapper.mapUserToDtoPlusAddressAndOrderHistory(user);
 
         return Response.builder()
@@ -152,4 +124,5 @@ public class UserServiceImpl implements UserService {
                 .user(userDto)
                 .build();
     }
+
 }

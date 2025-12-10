@@ -47,7 +47,7 @@ public class OrderItemServiceImpl implements OrderItemService {
     @Override
     public Response placeOrder(OrderRequest orderRequest) {
 
-        User user = userService.getLoginUser();
+        User user = userService.getCurrentUser();
 
         // Validate address
         if (orderRequest.getAddress() == null || orderRequest.getAddress().isBlank()) {
@@ -55,7 +55,6 @@ public class OrderItemServiceImpl implements OrderItemService {
                     "Delivery address is required to place an order!");
         }
 
-        // Validate items
         if (orderRequest.getItems() == null || orderRequest.getItems().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Order must contain at least one product!");
@@ -88,15 +87,12 @@ public class OrderItemServiceImpl implements OrderItemService {
 
         orderItems.forEach(item -> item.setOrder(order));
 
-        // Save Order first
         orderRepo.save(order);
 
-        // Set default payment method
         if (orderRequest.getPaymentMethod() == null) {
             orderRequest.setPaymentMethod(PaymentMethod.COD);
         }
 
-        // COD Payment Processing
         if (orderRequest.getPaymentMethod() == PaymentMethod.COD) {
 
             Payment payment = new Payment();
@@ -120,7 +116,6 @@ public class OrderItemServiceImpl implements OrderItemService {
                     .build();
         }
 
-        // Razorpay Payment Request
         long amountInPaise = totalPrice.multiply(BigDecimal.valueOf(100)).longValue();
         JSONObject rpOrder = razorpayService.createRazorpayOrder(order.getId(), amountInPaise,
                 "INR", "receipt_" + order.getId());

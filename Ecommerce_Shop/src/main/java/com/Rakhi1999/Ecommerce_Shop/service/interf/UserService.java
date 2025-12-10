@@ -10,6 +10,8 @@ public interface UserService {
     Response registerUser(UserDto registrationRequest);
     Response loginUser(LoginRequest loginRequest);
     Response getAllUsers();
-    User getLoginUser();
+
+    User getCurrentUser();
+
     Response getUserInfoAndOrderHistory();
 }
