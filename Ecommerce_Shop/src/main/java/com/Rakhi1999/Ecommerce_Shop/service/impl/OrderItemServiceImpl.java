@@ -4,20 +4,15 @@ import com.Rakhi1999.Ecommerce_Shop.dto.OrderRequest;
 import com.Rakhi1999.Ecommerce_Shop.dto.Response;
 import com.Rakhi1999.Ecommerce_Shop.entity.*;
 import com.Rakhi1999.Ecommerce_Shop.enums.OrderStatus;
-import com.Rakhi1999.Ecommerce_Shop.enums.PaymentMethod;
 import com.Rakhi1999.Ecommerce_Shop.exceptions.NotFoundException;
 import com.Rakhi1999.Ecommerce_Shop.mapper.EntityDtoMapper;
-import com.Rakhi1999.Ecommerce_Shop.repository.OrderItemRepo;
-import com.Rakhi1999.Ecommerce_Shop.repository.OrderRepo;
-import com.Rakhi1999.Ecommerce_Shop.repository.PaymentRepo;
-import com.Rakhi1999.Ecommerce_Shop.repository.ProductRepo;
+import com.Rakhi1999.Ecommerce_Shop.repository.*;
 import com.Rakhi1999.Ecommerce_Shop.service.interf.KafkaProducerService;
 import com.Rakhi1999.Ecommerce_Shop.service.interf.OrderItemService;
 import com.Rakhi1999.Ecommerce_Shop.service.interf.UserService;
 import com.Rakhi1999.Ecommerce_Shop.specification.OrderItemSpecification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.json.JSONObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -36,12 +31,13 @@ import java.util.stream.Collectors;
 public class OrderItemServiceImpl implements OrderItemService {
 
     private final OrderRepo orderRepo;
+    private final AddressRepo addressRepo;
     private final OrderItemRepo orderItemRepo;
     private final ProductRepo productRepo;
     private final UserService userService;
     private final EntityDtoMapper entityDtoMapper;
     private final PaymentRepo paymentRepo;
-    private final KafkaProducerService kafkaProducerService;
+    private final KafkaProducerService kafkaProducerService; // optional
     private final com.Rakhi1999.Ecommerce_Shop.service.interf.RazorpayService razorpayService;
 
     @Override
@@ -49,94 +45,87 @@ public class OrderItemServiceImpl implements OrderItemService {
 
         User user = userService.getCurrentUser();
 
-        // Validate address
-        if (orderRequest.getAddress() == null || orderRequest.getAddress().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Delivery address is required to place an order!");
-        }
-
         if (orderRequest.getItems() == null || orderRequest.getItems().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Order must contain at least one product!");
         }
 
+        // ===== ADDRESS =====
+        Address address = addressRepo
+                .findTopByUserIdOrderByCreatedAtDesc(user.getId())
+                .orElseGet(() -> {
+
+                    if (orderRequest.getStreet() == null) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                "Delivery address required");
+                    }
+
+                    Address newAddress = new Address();
+                    newAddress.setUser(user);
+                    newAddress.setStreet(orderRequest.getStreet());
+                    newAddress.setCity(orderRequest.getCity());
+                    newAddress.setState(orderRequest.getState());
+                    newAddress.setZipCode(orderRequest.getZipCode());
+                    newAddress.setCountry(orderRequest.getCountry());
+
+                    return addressRepo.save(newAddress);
+                });
+
+        String fullAddress = address.getStreet() + ", " +
+                address.getCity() + ", " +
+                address.getState() + " - " +
+                address.getZipCode() + ", " +
+                address.getCountry();
+
+        // ===== ORDER ITEMS =====
         List<OrderItem> orderItems = orderRequest.getItems().stream().map(itemReq -> {
+
             Product product = productRepo.findById(itemReq.getProductId())
                     .orElseThrow(() -> new NotFoundException("Product Not Found"));
 
-            OrderItem orderItem = new OrderItem();
-            orderItem.setProduct(product);
-            orderItem.setQuantity(itemReq.getQuantity());
-            orderItem.setPrice(product.getPrice()
+            OrderItem item = new OrderItem();
+            item.setProduct(product);
+            item.setQuantity(itemReq.getQuantity());
+            item.setPrice(product.getPrice()
                     .multiply(BigDecimal.valueOf(itemReq.getQuantity())));
-            orderItem.setStatus(OrderStatus.PENDING);
-            orderItem.setUser(user);
-            return orderItem;
+            item.setStatus(OrderStatus.PENDING);
+            item.setUser(user);
+            return item;
+
         }).collect(Collectors.toList());
 
         BigDecimal totalPrice = orderItems.stream()
                 .map(OrderItem::getPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        // ===== ORDER =====
         Orders order = new Orders();
-        order.setOrderItemList(orderItems);
-        order.setTotalPrice(totalPrice);
-        order.setAddress(orderRequest.getAddress());
-        order.setStatus(OrderStatus.PENDING);
         order.setUser(user);
+        order.setTotalPrice(totalPrice);
+        order.setAddress(fullAddress);
+        order.setStatus(OrderStatus.PENDING);
+        order.setOrderItemList(orderItems);
 
-        orderItems.forEach(item -> item.setOrder(order));
+        orderItems.forEach(i -> i.setOrder(order));
 
         orderRepo.save(order);
 
-        if (orderRequest.getPaymentMethod() == null) {
-            orderRequest.setPaymentMethod(PaymentMethod.COD);
-        }
-
-        if (orderRequest.getPaymentMethod() == PaymentMethod.COD) {
-
-            Payment payment = new Payment();
-            payment.setAmount(totalPrice);
-            payment.setMethod("COD");
-            payment.setStatus("PENDING_COD");
-            payment.setOrder(order);
-            paymentRepo.save(payment);
-
-            order.getOrderItemList()
-                    .forEach(oi -> oi.setStatus(OrderStatus.CONFIRMED));
-            order.setStatus(OrderStatus.CONFIRMED);
-            orderRepo.save(order);
-
-            kafkaProducerService.publishOrderPlaced(entityDtoMapper.mapOrderToDto(order));
-
-            return Response.builder()
-                    .status(200)
-                    .message("Order placed successfully with COD")
-                    .data(entityDtoMapper.mapOrderToDto(order))
-                    .build();
-        }
-
-        long amountInPaise = totalPrice.multiply(BigDecimal.valueOf(100)).longValue();
-        JSONObject rpOrder = razorpayService.createRazorpayOrder(order.getId(), amountInPaise,
-                "INR", "receipt_" + order.getId());
-
+        // ===== PAYMENT (COD) =====
         Payment payment = new Payment();
         payment.setAmount(totalPrice);
-        payment.setMethod("RAZORPAY");
-        payment.setStatus("CREATED");
+        payment.setMethod("COD");
+        payment.setStatus("PENDING_COD");
         payment.setOrder(order);
         paymentRepo.save(payment);
 
-        JSONObject resp = new JSONObject();
-        resp.put("razorpayOrderId", rpOrder.getString("id"));
-        resp.put("amount", rpOrder.getLong("amount"));
-        resp.put("currency", rpOrder.getString("currency"));
-        resp.put("orderId", order.getId());
+        order.setStatus(OrderStatus.CONFIRMED);
+        orderItems.forEach(i -> i.setStatus(OrderStatus.CONFIRMED));
+        orderRepo.save(order);
 
         return Response.builder()
                 .status(200)
-                .message("Razorpay order created. Complete payment on client and verify.")
-                .data(resp.toMap())
+                .message("Order placed successfully")
+                .data(entityDtoMapper.mapOrderToDto(order))
                 .build();
     }
 
@@ -149,7 +138,14 @@ public class OrderItemServiceImpl implements OrderItemService {
         orderItem.setStatus(OrderStatus.valueOf(status.toUpperCase()));
         orderItemRepo.save(orderItem);
 
-        kafkaProducerService.sendOrderItemStatusUpdated(entityDtoMapper.mapOrderItemToDtoPlusProductAndUser(orderItem));
+        // Optional Kafka publishing
+        try {
+            if (kafkaProducerService != null) {
+                kafkaProducerService.sendOrderItemStatusUpdated(entityDtoMapper.mapOrderItemToDtoPlusProductAndUser(orderItem));
+            }
+        } catch (Exception e) {
+            log.warn("Kafka publish failed: {}", e.getMessage());
+        }
 
         return Response.builder()
                 .status(200)
@@ -169,8 +165,7 @@ public class OrderItemServiceImpl implements OrderItemService {
             throw new NotFoundException("No Order Found");
         }
 
-        List<OrderItem> orderItems = orderItemPage.getContent();
-        List<?> orderItemDtos = orderItems.stream()
+        List<?> orderItemDtos = orderItemPage.getContent().stream()
                 .map(entityDtoMapper::mapOrderItemToDtoPlusProductAndUser)
                 .collect(Collectors.toList());
 

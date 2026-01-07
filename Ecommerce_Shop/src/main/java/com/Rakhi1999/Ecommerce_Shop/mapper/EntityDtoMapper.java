@@ -66,16 +66,25 @@ public class EntityDtoMapper {
         return productDto;
     }
 
-    public UserDto mapUserToDtoPlusAddress(User user){
+    public UserDto mapUserToDtoPlusAddress(User user) {
 
         System.out.println("mapUserToDtoPlusAddress is called");
         UserDto userDto = mapUserToDtoBasic(user);
-        if (user.getAddress() != null){
 
-            AddressDto addressDto = mapAddressToDtoBasic(user.getAddress());
-            userDto.setAddress(addressDto);
+        if (user.getAddresses() != null && !user.getAddresses().isEmpty()) {
 
+            Address latestAddress = user.getAddresses()
+                    .stream()
+                    .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (latestAddress != null) {
+                AddressDto addressDto = mapAddressToDtoBasic(latestAddress);
+                userDto.setAddress(addressDto);
+            }
         }
+
         return userDto;
     }
 

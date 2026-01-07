@@ -1,6 +1,5 @@
 package com.Rakhi1999.Ecommerce_Shop.service.impl;
 
-
 import com.Rakhi1999.Ecommerce_Shop.dto.LoginRequest;
 import com.Rakhi1999.Ecommerce_Shop.dto.Response;
 import com.Rakhi1999.Ecommerce_Shop.dto.UserDto;
@@ -19,6 +18,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
@@ -27,17 +28,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final EntityDtoMapper entityDtoMapper;
 
-
     @Override
     public Response registerUser(UserDto registrationRequest) {
 
-        // Check if email already exists
         if (userRepo.existsByEmail(registrationRequest.getEmail())) {
             return Response.builder()
                     .status(400)
@@ -46,11 +44,7 @@ public class UserServiceImpl implements UserService {
         }
 
         UserRole role = UserRole.USER;
-
-        if (registrationRequest.getRole() != null &&
-                registrationRequest.getRole().equalsIgnoreCase("admin")) {
-            role = UserRole.ADMIN;
-        }
+        if ("admin".equalsIgnoreCase(registrationRequest.getRole())) role = UserRole.ADMIN;
 
         User user = User.builder()
                 .name(registrationRequest.getName())
@@ -61,8 +55,8 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         User savedUser = userRepo.save(user);
-
         UserDto userDto = entityDtoMapper.mapUserToDtoBasic(savedUser);
+
         return Response.builder()
                 .status(200)
                 .message("User Successfully Registered")
@@ -70,17 +64,16 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
-
-
     @Override
     public Response loginUser(LoginRequest loginRequest) {
+        User user = userRepo.findByEmail(loginRequest.getEmail())
+                .orElseThrow(() -> new NotFoundException("Email not found"));
 
-        User user = userRepo.findByEmail(loginRequest.getEmail()).orElseThrow(()-> new NotFoundException("Email not found"));
-        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())){
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             throw new InvalidCredentialsException("Password does not match");
         }
-        String token = jwtUtils.generateToken(user);
 
+        String token = jwtUtils.generateToken(user);
         return Response.builder()
                 .status(200)
                 .message("User Successfully Logged In")
@@ -92,12 +85,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Response getAllUsers() {
-
-        List<User> users = userRepo.findAll();
-        List<UserDto> userDtos = users.stream()
+        List<UserDto> userDtos = userRepo.findAll().stream()
                 .map(entityDtoMapper::mapUserToDtoBasic)
                 .toList();
-
         return Response.builder()
                 .status(200)
                 .userList(userDtos)
@@ -107,6 +97,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not logged in");
+        }
+
         String email = authentication.getName();
         log.info("Logged-in user email: " + email);
 
@@ -124,5 +118,4 @@ public class UserServiceImpl implements UserService {
                 .user(userDto)
                 .build();
     }
-
 }
