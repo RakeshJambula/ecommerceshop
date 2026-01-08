@@ -70,12 +70,16 @@ public class WishlistServiceImpl implements WishlistService {
     @Override
     public Response getMyWishlist() {
         User user = userService.getCurrentUser();
-        List<Wishlist> wishlist = wishlistRepository.findByUser(user);
+
+        List<Product> products = wishlistRepository.findByUser(user)
+                .stream()
+                .map(Wishlist::getProduct)
+                .toList();
 
         return Response.builder()
                 .status(HttpStatus.OK.value())
                 .message("Wishlist fetched successfully")
-                .data(wishlist)
+                .data(products)
                 .build();
     }
 }
