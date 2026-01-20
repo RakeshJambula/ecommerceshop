@@ -1,5 +1,6 @@
 package com.Rakhi1999.Ecommerce_Shop.service.impl;
 
+import com.Rakhi1999.Ecommerce_Shop.dto.ProductWishlistDTO;
 import com.Rakhi1999.Ecommerce_Shop.dto.Response;
 import com.Rakhi1999.Ecommerce_Shop.entity.Product;
 import com.Rakhi1999.Ecommerce_Shop.entity.User;
@@ -66,14 +67,24 @@ public class WishlistServiceImpl implements WishlistService {
                 .message("Product removed from wishlist")
                 .build();
     }
-
     @Override
     public Response getMyWishlist() {
         User user = userService.getCurrentUser();
 
-        List<Product> products = wishlistRepository.findByUser(user)
+        List<ProductWishlistDTO> products = wishlistRepository.findByUser(user)
                 .stream()
-                .map(Wishlist::getProduct)
+                .map(wishlist -> {
+                    Product p = wishlist.getProduct();
+                    return new ProductWishlistDTO(
+                            p.getId(),
+                            p.getName(),
+                            p.getDescription(),
+                            p.getImageUrl(),
+                            p.getPrice(),
+                            p.getCategory().getId(),
+                            p.getCategory().getName()
+                    );
+                })
                 .toList();
 
         return Response.builder()
