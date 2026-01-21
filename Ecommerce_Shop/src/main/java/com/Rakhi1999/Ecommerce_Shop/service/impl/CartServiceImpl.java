@@ -1,5 +1,6 @@
 package com.Rakhi1999.Ecommerce_Shop.service.impl;
 
+import com.Rakhi1999.Ecommerce_Shop.dto.CartItemDTO;
 import com.Rakhi1999.Ecommerce_Shop.entity.CartItem;
 import com.Rakhi1999.Ecommerce_Shop.entity.Product;
 import com.Rakhi1999.Ecommerce_Shop.entity.User;
@@ -24,7 +25,7 @@ public class CartServiceImpl implements CartService {
     private final UserService userService;
 
     @Override
-    public CartItem addToCart(Long productId) {
+    public CartItemDTO addToCartDTO(Long productId) {
         User user = userService.getCurrentUser();
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product Not Found"));
@@ -39,17 +40,35 @@ public class CartServiceImpl implements CartService {
                 });
 
         cartItem.setQuantity(cartItem.getQuantity() + 1);
-        return cartItemRepository.save(cartItem);
+        CartItem saved = cartItemRepository.save(cartItem);
+
+        return new CartItemDTO(
+                saved.getId(),
+                product.getId(),
+                product.getName(),
+                product.getImageUrl(),
+                product.getPrice(),
+                saved.getQuantity()
+        );
     }
 
     @Override
-    public List<CartItem> getCartItems() {
+    public List<CartItemDTO> getCartItems() {
         User user = userService.getCurrentUser();
-        return cartItemRepository.findByUser(user);
+
+        return cartItemRepository.findByUser(user).stream()
+                .map(ci -> new CartItemDTO(
+                        ci.getId(),
+                        ci.getProduct().getId(),
+                        ci.getProduct().getName(),
+                        ci.getProduct().getImageUrl(),
+                        ci.getProduct().getPrice(),
+                        ci.getQuantity()
+                ))
+                .toList();
     }
 
-    @Override
-    public CartItem incrementItem(Long productId) {
+    public CartItemDTO incrementItem(Long productId) {
         User user = userService.getCurrentUser();
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product Not Found"));
@@ -58,12 +77,22 @@ public class CartServiceImpl implements CartService {
                 .orElseThrow(() -> new NotFoundException("Cart item not found"));
 
         cartItem.setQuantity(cartItem.getQuantity() + 1);
-        return cartItemRepository.save(cartItem);
+        CartItem saved = cartItemRepository.save(cartItem);
+
+        return new CartItemDTO(
+                saved.getId(),
+                saved.getProduct().getId(),
+                saved.getProduct().getName(),
+                saved.getProduct().getImageUrl(),
+                saved.getProduct().getPrice(),
+                saved.getQuantity()
+        );
     }
 
     @Override
-    public CartItem decrementItem(Long productId) {
+    public CartItemDTO decrementItem(Long productId) {
         User user = userService.getCurrentUser();
+
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new NotFoundException("Product Not Found"));
 
@@ -72,10 +101,19 @@ public class CartServiceImpl implements CartService {
 
         if (cartItem.getQuantity() > 1) {
             cartItem.setQuantity(cartItem.getQuantity() - 1);
-            return cartItemRepository.save(cartItem);
+            CartItem saved = cartItemRepository.save(cartItem);
+
+            return new CartItemDTO(
+                    saved.getId(),
+                    saved.getProduct().getId(),
+                    saved.getProduct().getName(),
+                    saved.getProduct().getImageUrl(),
+                    saved.getProduct().getPrice(),
+                    saved.getQuantity()
+            );
         } else {
             cartItemRepository.delete(cartItem);
-            return null;
+            return null; // item removed
         }
     }
 

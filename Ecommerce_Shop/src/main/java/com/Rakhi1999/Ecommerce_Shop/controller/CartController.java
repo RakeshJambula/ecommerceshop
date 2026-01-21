@@ -1,6 +1,6 @@
 package com.Rakhi1999.Ecommerce_Shop.controller;
 
-import com.Rakhi1999.Ecommerce_Shop.entity.CartItem;
+import com.Rakhi1999.Ecommerce_Shop.dto.CartItemDTO;
 import com.Rakhi1999.Ecommerce_Shop.service.interf.CartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,23 +16,23 @@ public class CartController {
     private final CartService cartService;
 
     @PostMapping("/add/{productId}")
-    public ResponseEntity<CartItem> addToCart(@PathVariable Long productId) {
-        return ResponseEntity.ok(cartService.addToCart(productId));
+    public ResponseEntity<CartItemDTO> addToCart(@PathVariable Long productId) {
+        return ResponseEntity.ok(cartService.addToCartDTO(productId));
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<CartItem>> getCartItems() {
+    public ResponseEntity<List<CartItemDTO>> getCartItems() {
         return ResponseEntity.ok(cartService.getCartItems());
     }
 
     @PutMapping("/increment/{productId}")
-    public ResponseEntity<CartItem> increment(@PathVariable Long productId) {
+    public ResponseEntity<CartItemDTO> increment(@PathVariable Long productId) {
         return ResponseEntity.ok(cartService.incrementItem(productId));
     }
 
     @PutMapping("/decrement/{productId}")
     public ResponseEntity<?> decrement(@PathVariable Long productId) {
-        CartItem ci = cartService.decrementItem(productId);
+        CartItemDTO ci = cartService.decrementItem(productId);
         return ci == null ? ResponseEntity.ok().build() : ResponseEntity.ok(ci);
     }
 
