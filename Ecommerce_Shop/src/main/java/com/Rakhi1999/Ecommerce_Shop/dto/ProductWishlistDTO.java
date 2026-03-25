@@ -19,4 +19,5 @@ public class ProductWishlistDTO {
 
     private Long categoryId;
     private String categoryName;
+    private Integer stock;
 }

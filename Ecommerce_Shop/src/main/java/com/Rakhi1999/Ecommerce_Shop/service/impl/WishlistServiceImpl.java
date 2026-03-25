@@ -82,7 +82,8 @@ public class WishlistServiceImpl implements WishlistService {
                             p.getImageUrl(),
                             p.getPrice(),
                             p.getCategory().getId(),
-                            p.getCategory().getName()
+                            p.getCategory().getName(),
+                            p.getStockQuantity()
                     );
                 })
                 .toList();

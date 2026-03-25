@@ -39,6 +39,15 @@ public class CartServiceImpl implements CartService {
                     return ci;
                 });
 
+
+        if (product.getStockQuantity() <= 0) {
+            throw new IllegalStateException("Product is out of stock");
+        }
+
+        if (cartItem.getQuantity() + 1 > product.getStockQuantity()) {
+            throw new RuntimeException("Cannot add more items. Stock limit reached");
+        }
+
         cartItem.setQuantity(cartItem.getQuantity() + 1);
         CartItem saved = cartItemRepository.save(cartItem);
 
@@ -48,7 +57,8 @@ public class CartServiceImpl implements CartService {
                 product.getName(),
                 product.getImageUrl(),
                 product.getPrice(),
-                saved.getQuantity()
+                saved.getQuantity(),
+                product.getStockQuantity()
         );
     }
 
@@ -63,11 +73,14 @@ public class CartServiceImpl implements CartService {
                         ci.getProduct().getName(),
                         ci.getProduct().getImageUrl(),
                         ci.getProduct().getPrice(),
-                        ci.getQuantity()
+                        ci.getQuantity(),
+                        ci.getProduct().getStockQuantity()
+
                 ))
                 .toList();
     }
 
+    @Override
     public CartItemDTO incrementItem(Long productId) {
         User user = userService.getCurrentUser();
         Product product = productRepo.findById(productId)
@@ -75,6 +88,15 @@ public class CartServiceImpl implements CartService {
 
         CartItem cartItem = cartItemRepository.findByUserAndProduct(user, product)
                 .orElseThrow(() -> new NotFoundException("Cart item not found"));
+
+
+        if (product.getStockQuantity() <= 0) {
+            throw new RuntimeException("Product is out of stock");
+        }
+
+        if (cartItem.getQuantity() + 1 > product.getStockQuantity()) {
+            throw new IllegalStateException("Stock limit reached");
+        }
 
         cartItem.setQuantity(cartItem.getQuantity() + 1);
         CartItem saved = cartItemRepository.save(cartItem);
@@ -85,7 +107,8 @@ public class CartServiceImpl implements CartService {
                 saved.getProduct().getName(),
                 saved.getProduct().getImageUrl(),
                 saved.getProduct().getPrice(),
-                saved.getQuantity()
+                saved.getQuantity(),
+                saved.getProduct().getStockQuantity()
         );
     }
 
@@ -109,7 +132,8 @@ public class CartServiceImpl implements CartService {
                     saved.getProduct().getName(),
                     saved.getProduct().getImageUrl(),
                     saved.getProduct().getPrice(),
-                    saved.getQuantity()
+                    saved.getQuantity(),
+                    saved.getProduct().getStockQuantity()
             );
         } else {
             cartItemRepository.delete(cartItem);

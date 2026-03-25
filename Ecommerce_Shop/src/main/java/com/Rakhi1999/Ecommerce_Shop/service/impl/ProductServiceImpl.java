@@ -34,7 +34,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     @Override
-    public Response createProduct(Long categoryId, MultipartFile image, String name, String description, BigDecimal price) {
+    public Response createProduct(Long categoryId, MultipartFile image, String name, String description, BigDecimal price, Integer stockQuantity) {
         Category category = categoryRepo.findById(categoryId).orElseThrow(()-> new NotFoundException("Category not found"));
         String productImageUrl = awsS3Service.saveImageToS3(image);
 
@@ -44,6 +44,7 @@ public class ProductServiceImpl implements ProductService {
         product.setName(name);
         product.setDescription(description);
         product.setImageUrl(productImageUrl);
+        product.setStockQuantity(stockQuantity);
 
         productRepo.save(product);
         return Response.builder()
@@ -53,7 +54,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Response updateProduct(Long productId, Long categoryId, MultipartFile image, String name, String description, BigDecimal price) {
+    public Response updateProduct(Long productId, Long categoryId, MultipartFile image, String name, String description, BigDecimal price, Integer stockQuantity) {
         Product product = productRepo.findById(productId).orElseThrow(()-> new NotFoundException("Product Not Found"));
 
         Category category = null;
@@ -71,6 +72,7 @@ public class ProductServiceImpl implements ProductService {
         if (price != null) product.setPrice(price);
         if (description != null) product.setDescription(description);
         if (productImageUrl != null) product.setImageUrl(productImageUrl);
+        if (stockQuantity != null) product.setStockQuantity(stockQuantity);
 
         productRepo.save(product);
         return Response.builder()

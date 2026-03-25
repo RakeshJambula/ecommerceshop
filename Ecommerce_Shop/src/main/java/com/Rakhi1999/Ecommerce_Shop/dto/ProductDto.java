@@ -21,4 +21,5 @@ public class ProductDto {
     private BigDecimal price;
     private String imageUrl;
     private CategoryDto category;
+    private Integer stock;
 }
