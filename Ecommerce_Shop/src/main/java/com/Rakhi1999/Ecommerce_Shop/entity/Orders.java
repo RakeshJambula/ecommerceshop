@@ -19,6 +19,12 @@ public class Orders {
 
     @Column(nullable = false)
     private BigDecimal totalPrice;
+    private BigDecimal originalPrice;
+    private BigDecimal discountAmount;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "coupon_id")
+    private Coupon coupon;
 
     @Column(nullable = false, length = 500)
     private String address;

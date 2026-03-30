@@ -11,6 +11,7 @@ public class OrderRequest {
 
     private List<OrderItemRequest> items;
     private PaymentMethod paymentMethod;
+    private String couponCode;
 
     // ADDRESS FIELDS (REQUIRED)
     private String street;

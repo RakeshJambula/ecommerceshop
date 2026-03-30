@@ -43,6 +43,7 @@ public class OrderItemServiceImpl implements OrderItemService {
 
     private final OrderTimelineService orderTimelineService;
     private final NotificationService notificationService;
+    private final CouponService couponService;
 
 
     // PLACE ORDER
@@ -135,11 +136,37 @@ public class OrderItemServiceImpl implements OrderItemService {
                 .map(OrderItem::getPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        BigDecimal finalPrice = totalPrice;
+
+        Coupon appliedCoupon = null;
+
+        // APPLY COUPON
+        if (orderRequest.getCouponCode() != null && !orderRequest.getCouponCode().isEmpty()) {
+
+            appliedCoupon = couponService.validateCoupon(
+                    orderRequest.getCouponCode(),
+                    totalPrice
+            );
+
+            finalPrice = couponService.applyDiscount(appliedCoupon, totalPrice);
+
+            couponService.incrementUsage(appliedCoupon);
+        }
+
         // CREATE ORDER
         Orders order = new Orders();
 
         order.setUser(user);
-        order.setTotalPrice(totalPrice);
+        order.setOriginalPrice(totalPrice); // before discount
+        order.setTotalPrice(finalPrice);    // after discount
+
+        if (appliedCoupon != null) {
+            order.setCoupon(appliedCoupon);
+            order.setDiscountAmount(totalPrice.subtract(finalPrice));
+        } else {
+            order.setDiscountAmount(BigDecimal.ZERO);
+        }
+
         order.setAddress(fullAddress);
         order.setStatus(OrderStatus.PENDING);
         order.setOrderItemList(orderItems);
@@ -160,7 +187,7 @@ public class OrderItemServiceImpl implements OrderItemService {
         Payment payment = new Payment();
 
         payment.setOrder(order);
-        payment.setAmount(totalPrice);
+        payment.setAmount(finalPrice);
         payment.setMethod(orderRequest.getPaymentMethod().name());
         payment.setStatus("PENDING");
 
